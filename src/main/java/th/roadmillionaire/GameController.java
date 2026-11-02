@@ -48,6 +48,14 @@ final class GameController {
         return lotterySystem.specialChance(model.cash());
     }
 
+    TicketOdds ticketOdds(TicketTier tier) {
+        return tier.oddsAfterPurchases(model.ticketPurchases(tier));
+    }
+
+    int ticketPurchases(TicketTier tier) {
+        return model.ticketPurchases(tier);
+    }
+
     void startStory() {
         introPage = 0;
         screen = Screen.INTRO;
@@ -124,9 +132,10 @@ final class GameController {
             return false;
         }
         message = "";
-        model.recordTicketPurchase();
+        TicketOdds odds = ticketOdds(tier);
+        model.recordTicketPurchase(tier);
         latestRegularTier = tier;
-        latestOutcome = lotterySystem.drawRegular(tier);
+        latestOutcome = lotterySystem.drawRegular(tier, odds);
         revealedSymbols = new boolean[latestOutcome.symbols().size()];
         regularPayoutApplied = false;
         screen = Screen.LOTTERY_RESULT;

@@ -12,7 +12,7 @@ final class LotterySystem {
         this.random = random;
     }
 
-    LotteryOutcome drawRegular(TicketTier tier) {
+    LotteryOutcome drawRegular(TicketTier tier, TicketOdds odds) {
         List<TicketSymbol> symbols = new ArrayList<>(tier.symbolCount());
         int majorCount = 0;
         int consolationCount = 0;
@@ -21,13 +21,13 @@ final class LotterySystem {
         for (int i = 0; i < tier.symbolCount(); i++) {
             double roll = random.nextDouble();
             TicketSymbol symbol;
-            if (roll < tier.majorChance()) {
+            if (roll < odds.majorChance()) {
                 symbol = TicketSymbol.MAJOR_PRIZE;
                 majorCount++;
-            } else if (roll < tier.majorChance() + tier.consolationChance()) {
+            } else if (roll < odds.majorChance() + odds.consolationChance()) {
                 symbol = TicketSymbol.CONSOLATION;
                 consolationCount++;
-            } else if (roll < tier.majorChance() + tier.consolationChance() + tier.skullChance()) {
+            } else if (roll < odds.majorChance() + odds.consolationChance() + odds.skullChance()) {
                 symbol = TicketSymbol.SKULL;
                 skullCount++;
             } else {

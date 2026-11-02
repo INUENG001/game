@@ -29,9 +29,7 @@ final class GamePanel extends JPanel {
     private static final Color INK = new Color(22, 37, 60);
     private static final Color CREAM = new Color(255, 248, 220);
     private static final Color GOLD = new Color(255, 190, 52);
-    private static final Color GOLD_DARK = new Color(218, 126, 20);
     private static final Color BLUE = new Color(31, 86, 145);
-    private static final Color PALE_BLUE = new Color(226, 240, 251);
     private static final Color GREEN = new Color(56, 142, 91);
     private static final Color RED = new Color(174, 57, 58);
     private static final DecimalFormat MONEY = new DecimalFormat("#,##0");
@@ -567,6 +565,8 @@ final class GamePanel extends JPanel {
 
     private void drawTicketCard(Graphics2D g, TicketTier tier, Rectangle card, Rectangle button) {
         boolean affordable = controller.model().canAfford(tier.price());
+        TicketOdds odds = controller.ticketOdds(tier);
+        int purchases = Math.min(controller.ticketPurchases(tier), tier.purchasesToCap());
         Color border = affordable ? new Color(240, 196, 93) : new Color(99, 118, 139);
         fillRound(g, new Color(242, 247, 250), card.x, card.y, card.width, card.height, 22);
         strokeRound(g, border, card.x, card.y, card.width, card.height, 22, 3f);
@@ -577,6 +577,9 @@ final class GamePanel extends JPanel {
                 28, Font.BOLD, new Color(153, 92, 25), false, true);
         drawText(g, tier.symbolCount() + " ช่องสัญลักษณ์", card.x + card.width - 18, card.y + 113,
                 15, Font.PLAIN, new Color(68, 86, 105), false, true);
+        drawText(g, "ซื้อซ้ำ " + purchases + " / " + tier.purchasesToCap() + " ใบ",
+                card.x + card.width / 2, card.y + 151,
+                12, Font.PLAIN, new Color(93, 111, 128), true);
 
         int cellWidth = tier.symbolCount() >= 7 ? 34 : tier.symbolCount() >= 5 ? 39 : 45;
         int gap = tier.symbolCount() >= 6 ? 5 : 9;
@@ -591,12 +594,15 @@ final class GamePanel extends JPanel {
                     27, Font.BOLD, BLUE, true);
         }
         drawText(g, "ใหญ่ ฿" + money(tier.price() * tier.majorMultiplier()),
-                card.x + 24, card.y + 267, 17, Font.BOLD, new Color(144, 83, 18), false);
+                card.x + 24, card.y + 260, 17, Font.BOLD, new Color(144, 83, 18), false);
         drawText(g, "ปลอบใจ ฿" + money(tier.price()) + "  •  กะโหลก −฿" + money(tier.price()),
-                card.x + 24, card.y + 298, 14, Font.PLAIN, new Color(70, 87, 103), false);
-        drawText(g, "โอกาสต่อช่อง  " + percent(tier.majorChance()) + " / "
-                        + percent(tier.consolationChance()) + " / " + percent(tier.skullChance()),
-                card.x + 24, card.y + 332, 14, Font.PLAIN, new Color(70, 87, 103), false);
+                card.x + 24, card.y + 287, 14, Font.PLAIN, new Color(70, 87, 103), false);
+        drawText(g, "ต่อช่อง ใหญ่ " + percent(odds.majorChance())
+                        + " / ปลอบใจ " + percent(odds.consolationChance()),
+                card.x + 18, card.y + 315, 12, Font.PLAIN, new Color(70, 87, 103), false);
+        drawText(g, "หักลบ " + percent(odds.skullChance())
+                        + " / ว่าง " + percent(odds.emptyChance()),
+                card.x + 18, card.y + 336, 12, Font.PLAIN, new Color(70, 87, 103), false);
         drawButton(g, button, affordable ? "ซื้อและเปิดสลาก" : "เงินไม่พอ",
                 affordable ? new Color(40, 101, 152) : new Color(119, 132, 146),
                 affordable ? new Color(127, 183, 226) : new Color(164, 174, 184), affordable);

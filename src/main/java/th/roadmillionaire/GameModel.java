@@ -1,8 +1,12 @@
 package th.roadmillionaire;
 
+import java.util.EnumMap;
+
 final class GameModel {
     static final long STARTING_DEBT = 10_000_000L;
 
+    private final EnumMap<TicketTier, Integer> ticketPurchasesByTier =
+            new EnumMap<>(TicketTier.class);
     private long cash;
     private long debt;
     private int performances;
@@ -18,6 +22,7 @@ final class GameModel {
         debt = STARTING_DEBT;
         performances = 0;
         ticketsBought = 0;
+        ticketPurchasesByTier.clear();
         cursorPurchased = false;
     }
 
@@ -70,6 +75,15 @@ final class GameModel {
 
     void recordTicketPurchase() {
         ticketsBought++;
+    }
+
+    void recordTicketPurchase(TicketTier tier) {
+        recordTicketPurchase();
+        ticketPurchasesByTier.merge(tier, 1, Integer::sum);
+    }
+
+    int ticketPurchases(TicketTier tier) {
+        return ticketPurchasesByTier.getOrDefault(tier, 0);
     }
 
     void repayDebt(long amount) {
