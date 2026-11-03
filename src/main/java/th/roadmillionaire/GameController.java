@@ -188,8 +188,9 @@ final class GameController {
         TicketOdds odds = ticketOdds(tier);
         model.recordTicketPurchase(tier);
         latestRegularTier = tier;
-        latestOutcome = lotterySystem.drawRegular(tier, odds);
-        revealedSymbols = new boolean[latestOutcome.symbols().size()];
+        RegularLotteryOutcome regularOutcome = lotterySystem.drawRegular(tier, odds);
+        latestOutcome = regularOutcome;
+        revealedSymbols = new boolean[regularOutcome.symbols().size()];
         regularPayoutApplied = false;
         screen = Screen.LOTTERY_RESULT;
         return true;
@@ -204,11 +205,12 @@ final class GameController {
         message = "";
         model.spend(wager);
         model.recordTicketPurchase();
-        latestOutcome = lotterySystem.drawSpecial(wager, model.luckBonus());
+        SpecialLotteryOutcome specialOutcome = lotterySystem.drawSpecial(wager, model.luckBonus());
+        latestOutcome = specialOutcome;
         revealedSymbols = new boolean[0];
         regularPayoutApplied = false;
-        if (latestOutcome.won()) {
-            model.addCash(latestOutcome.prize());
+        if (specialOutcome.won()) {
+            model.addCash(specialOutcome.prize());
             model.repayDebt(GameModel.STARTING_DEBT);
             model.clearDebt();
             screen = Screen.VICTORY;
@@ -243,7 +245,7 @@ final class GameController {
     }
 
     boolean allSymbolsRevealed() {
-        if (latestOutcome == null || latestOutcome.special()) return true;
+        if (!(latestOutcome instanceof RegularLotteryOutcome)) return true;
         for (boolean revealed : revealedSymbols) {
             if (!revealed) return false;
         }
@@ -251,7 +253,7 @@ final class GameController {
     }
 
     void revealSymbol(int index) {
-        if (latestOutcome == null || latestOutcome.special()
+        if (!(latestOutcome instanceof RegularLotteryOutcome)
                 || index < 0 || index >= revealedSymbols.length || revealedSymbols[index]) {
             return;
         }

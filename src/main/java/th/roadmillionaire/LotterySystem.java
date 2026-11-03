@@ -12,7 +12,7 @@ final class LotterySystem {
         this.random = random;
     }
 
-    LotteryOutcome drawRegular(TicketTier tier, TicketOdds odds) {
+    RegularLotteryOutcome drawRegular(TicketTier tier, TicketOdds odds) {
         List<TicketSymbol> symbols = new ArrayList<>(tier.symbolCount());
         int majorCount = 0;
         int consolationCount = 0;
@@ -40,7 +40,7 @@ final class LotterySystem {
                 + (long) consolationCount * tier.price()
                 - (long) skullCount * tier.price();
         long prize = Math.max(0L, rawPrize);
-        return new LotteryOutcome(false, prize > 0L, tier, symbols, tier.price(), prize, 0.0);
+        return new RegularLotteryOutcome(tier, symbols, tier.price(), prize);
     }
 
     double specialChance(long currentCash, double luckBonus) {
@@ -51,10 +51,10 @@ final class LotterySystem {
         return Math.min(0.50, baseChance + luckBonus);
     }
 
-    LotteryOutcome drawSpecial(long currentCash, double luckBonus) {
+    SpecialLotteryOutcome drawSpecial(long currentCash, double luckBonus) {
         double chance = specialChance(currentCash, luckBonus);
         boolean won = currentCash > 0L && random.nextDouble() < chance;
         long prize = won ? SPECIAL_PRIZE : 0L;
-        return new LotteryOutcome(true, won, null, List.of(), currentCash, prize, chance);
+        return new SpecialLotteryOutcome(won, currentCash, prize, chance);
     }
 }

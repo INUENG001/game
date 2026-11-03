@@ -1,17 +1,27 @@
 package th.roadmillionaire;
 
-import java.util.List;
+abstract class LotteryOutcome {
+    private final boolean won;
+    private final long wager;
+    private final long prize;
 
-record LotteryOutcome(
-        boolean special,
-        boolean won,
-        TicketTier tier,
-        List<TicketSymbol> symbols,
-        long wager,
-        long prize,
-        double chance
-) {
-    LotteryOutcome {
-        symbols = List.copyOf(symbols);
+    LotteryOutcome(boolean won, long wager, long prize) {
+        this.won = won;
+        this.wager = wager;
+        this.prize = prize;
     }
+
+    public final boolean won() {
+        return won;
+    }
+
+    public final long wager() {
+        return wager;
+    }
+
+    public final long prize() {
+        return prize;
+    }
+
+    public abstract boolean special();
 }
