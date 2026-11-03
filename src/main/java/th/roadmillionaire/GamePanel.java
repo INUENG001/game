@@ -232,9 +232,12 @@ final class GamePanel extends JPanel {
             }
             case LOTTERY_RESULT -> {
                 if (!controller.allSymbolsRevealed()) {
-                    int symbolIndex = resultSymbolIndexAt(x, y,
-                            controller.latestOutcome().symbols().size());
-                    if (symbolIndex >= 0) controller.revealSymbol(symbolIndex);
+                    LotteryOutcome outcome = controller.latestOutcome();
+                    if (outcome instanceof RegularLotteryOutcome regularOutcome) {
+                        int symbolIndex = resultSymbolIndexAt(x, y,
+                                regularOutcome.symbols().size());
+                        if (symbolIndex >= 0) controller.revealSymbol(symbolIndex);
+                    }
                 } else if (RESULT_LOTTERY.contains(x, y)) {
                     controller.returnToLottery();
                 } else if (RESULT_TOWN.contains(x, y)) {
@@ -274,8 +277,8 @@ final class GamePanel extends JPanel {
             return;
         }
         LotteryOutcome outcome = controller.latestOutcome();
-        if (outcome == null || outcome.special()) return;
-        int symbolIndex = resultSymbolIndexAt(point.x, point.y, outcome.symbols().size());
+        if (!(outcome instanceof RegularLotteryOutcome regularOutcome)) return;
+        int symbolIndex = resultSymbolIndexAt(point.x, point.y, regularOutcome.symbols().size());
         if (symbolIndex >= 0) controller.revealSymbol(symbolIndex);
     }
 
@@ -639,7 +642,7 @@ final class GamePanel extends JPanel {
         fillRound(g, new Color(237, 244, 249), 214, 60, 852, 603, 30);
         strokeRound(g, new Color(243, 199, 105), 214, 60, 852, 603, 30, 3f);
         drawCashTab(g);
-        if (outcome.special()) {
+        if (outcome instanceof SpecialLotteryOutcome specialOutcome) {
             drawImage(g, "coin_06.png", 600, 139, 80, 80);
             drawText(g, "สลากพิเศษ", 640, 278, 28, Font.BOLD, new Color(103, 49, 111), true);
             if (outcome.won()) {
@@ -652,16 +655,16 @@ final class GamePanel extends JPanel {
                     21, Font.BOLD, RED, true);
             drawText(g, "ได้รับ ฿" + money(outcome.prize()), 760, 380,
                     21, Font.BOLD, GREEN, true);
-            drawText(g, "โอกาสชนะ " + percent(outcome.chance()), 640, 425,
+            drawText(g, "โอกาสชนะ " + percent(specialOutcome.chance()), 640, 425,
                     18, Font.BOLD, new Color(132, 79, 145), true);
             if (!outcome.won()) {
                 drawText(g, "กลับไปแสดง Living Statue เพื่อเก็บเงินใหม่ได้", 640, 468,
                         17, Font.PLAIN, new Color(69, 87, 105), true);
             }
-        } else {
-            drawSymbolCards(g, outcome.symbols(), 640, RESULT_SYMBOL_Y);
+        } else if (outcome instanceof RegularLotteryOutcome regularOutcome) {
+            drawSymbolCards(g, regularOutcome.symbols(), 640, RESULT_SYMBOL_Y);
             if (controller.allSymbolsRevealed()) {
-                drawText(g, "ผลสลากระดับ " + outcome.tier().level(), 640, 322,
+                drawText(g, "ผลสลากระดับ " + regularOutcome.tier().level(), 640, 322,
                         27, Font.BOLD, INK, true);
                 drawText(g, outcome.prize() > 0 ? "มีรางวัล!" : "ยังไม่ได้รางวัลในรอบนี้",
                         640, 364, 23, Font.BOLD, outcome.prize() > 0 ? GREEN : RED, true);
@@ -674,7 +677,7 @@ final class GamePanel extends JPanel {
             } else {
                 String revealStatus = (controller.model().cursorPurchased()
                         ? "ชี้เมาส์เพื่อเปิด  " : "เปิดแล้ว ")
-                        + controller.revealedSymbolCount() + " / " + outcome.symbols().size();
+                        + controller.revealedSymbolCount() + " / " + regularOutcome.symbols().size();
                 drawText(g, revealStatus,
                         640, 365, 16, Font.PLAIN, new Color(78, 95, 112), true);
             }
@@ -704,31 +707,13 @@ final class GamePanel extends JPanel {
                 continue;
             }
             TicketSymbol symbol = symbols.get(i);
-            Color tint = switch (symbol) {
-                case MAJOR_PRIZE -> new Color(255, 229, 154);
-                case CONSOLATION -> new Color(222, 235, 247);
-                case SKULL -> new Color(244, 203, 203);
-                case EMPTY -> new Color(229, 235, 239);
-            };
+            Color tint = symbol.tint();
             fillRound(g, tint, x, y, cardWidth, RESULT_SYMBOL_CARD_HEIGHT, 16);
             strokeRound(g, Color.WHITE, x, y, cardWidth,
                     RESULT_SYMBOL_CARD_HEIGHT, 16, 2f);
             int iconSize = Math.min(54, cardWidth - 24);
-            int iconX = x + (cardWidth - iconSize) / 2;
-            switch (symbol) {
-                case MAJOR_PRIZE -> drawImage(g, "coin.png", iconX, y + 15, iconSize, iconSize);
-                case CONSOLATION -> drawImage(g, "coin_01.png", iconX, y + 15, iconSize, iconSize);
-                case SKULL -> drawSkull(g, x + (cardWidth - 36) / 2, y + 19, 36);
-                case EMPTY -> drawText(g, "—", x + cardWidth / 2, y + 58,
-                        38, Font.BOLD, new Color(112, 129, 144), false);
-            }
-            String label = switch (symbol) {
-                case MAJOR_PRIZE -> "รางวัลใหญ่";
-                case CONSOLATION -> "ปลอบใจ";
-                case SKULL -> "หักล้าง";
-                case EMPTY -> "ว่าง";
-            };
-            drawText(g, label, x + cardWidth / 2, y + 111,
+            symbol.drawIcon(this, g, x, y, cardWidth, iconSize);
+            drawText(g, symbol.label(), x + cardWidth / 2, y + 111,
                     16, Font.BOLD, INK, true);
         }
     }
@@ -857,7 +842,7 @@ final class GamePanel extends JPanel {
         }
     }
 
-    private void drawSkull(Graphics2D g, int x, int y, int size) {
+    void drawSkull(Graphics2D g, int x, int y, int size) {
         g.setColor(new Color(119, 48, 61));
         g.fillOval(x, y, size, size);
         g.setColor(new Color(255, 236, 226));
@@ -939,7 +924,7 @@ final class GamePanel extends JPanel {
                 bounds.y + bounds.height / 2 + 7, 20, Font.BOLD, textColor, true);
     }
 
-    private void drawImage(Graphics2D g, String name, int x, int y, int width, int height) {
+    void drawImage(Graphics2D g, String name, int x, int y, int width, int height) {
         BufferedImage image = assets.image(name);
         if (image != null) {
             g.drawImage(image, x, y, width, height, null);
@@ -962,12 +947,12 @@ final class GamePanel extends JPanel {
         g.draw(new RoundRectangle2D.Float(x, y, width, height, radius, radius));
     }
 
-    private void drawText(Graphics2D g, String text, int x, int baseline,
+    void drawText(Graphics2D g, String text, int x, int baseline,
                           int size, int style, Color color, boolean centered) {
         drawText(g, text, x, baseline, size, style, color, centered, false);
     }
 
-    private void drawText(Graphics2D g, String text, int x, int baseline,
+    void drawText(Graphics2D g, String text, int x, int baseline,
                           int size, int style, Color color, boolean centered, boolean rightAligned) {
         Font font = new Font("Tahoma", style, size);
         g.setFont(font);
