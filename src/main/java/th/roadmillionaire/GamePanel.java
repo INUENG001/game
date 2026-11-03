@@ -909,7 +909,7 @@ final class GamePanel extends JPanel {
 
     private void drawButton(Graphics2D g, Rectangle bounds, String label,
                             Color fill, Color border, boolean enabled, Color textColor) {
-        boolean hovered = enabled && bounds.contains(mouseCanvas);
+        boolean hovered = enabled && mouseCanvas != null && bounds.contains(mouseCanvas);
         Color actualFill = enabled ? fill : new Color(104, 116, 128);
         Color actualBorder = enabled ? border : new Color(151, 162, 170);
         if (hovered) {
