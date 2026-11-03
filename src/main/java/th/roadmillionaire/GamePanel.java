@@ -42,6 +42,7 @@ final class GamePanel extends JPanel {
     private static final Rectangle TOWN_HELP = new Rectangle(740, 596, 238, 78);
     private static final Rectangle TOWN_RESTART = new Rectangle(996, 596, 236, 78);
     private static final Rectangle TOWN_STORE = new Rectangle(835, 170, 330, 112);
+    private static final Rectangle TOWN_PAY_DEBT = new Rectangle(812, 418, 360, 84);
     private static final Rectangle STORE_BACK = new Rectangle(40, 30, 174, 54);
     private static final Rectangle STORE_CURSOR_BUY = new Rectangle(102, 535, 460, 60);
     private static final Rectangle STORE_DONATE = new Rectangle(718, 535, 460, 60);
@@ -63,7 +64,7 @@ final class GamePanel extends JPanel {
     private static final int RESULT_SYMBOL_CARD_HEIGHT = 140;
     private static final int RESULT_SYMBOL_GAP = 14;
     private static final int RESULT_SYMBOL_Y = 126;
-    private static final Rectangle VICTORY_RESTART = new Rectangle(470, 592, 340, 70);
+    private static final Rectangle ENDING_DONE = new Rectangle(490, 620, 300, 66);
 
     private final GameController controller;
     private final AssetManager assets;
@@ -184,6 +185,8 @@ final class GamePanel extends JPanel {
                     controller.openStore();
                 } else if (TOWN_HELP.contains(x, y)) {
                     tutorialOpen = true;
+                } else if (TOWN_PAY_DEBT.contains(x, y)) {
+                    controller.payDebt();
                 } else if (TOWN_RESTART.contains(x, y)) {
                     controller.startNewGame();
                 }
@@ -253,7 +256,12 @@ final class GamePanel extends JPanel {
                 }
             }
             case VICTORY -> {
-                if (VICTORY_RESTART.contains(x, y)) controller.startNewGame();
+                if (ENDING_DONE.contains(x, y)) {
+                    tutorialOpen = false;
+                    titleTutorialOpen = false;
+                    lotteryPage = 0;
+                    controller.finishGame();
+                }
             }
         }
         repaint();
@@ -413,6 +421,13 @@ final class GamePanel extends JPanel {
         drawText(g, "สลากที่ซื้อ", 650, 456, 16, Font.BOLD, new Color(193, 211, 229), false);
         drawText(g, Integer.toString(controller.model().ticketsBought()), 650, 490,
                 28, Font.BOLD, GOLD, false);
+
+        boolean canPayDebt = controller.model().canAfford(GameModel.STARTING_DEBT)
+                && controller.model().debt() > 0L;
+        drawButton(g, TOWN_PAY_DEBT, "ชำระหนี้",
+                canPayDebt ? GOLD : new Color(104, 116, 128),
+                canPayDebt ? new Color(255, 224, 107) : new Color(151, 162, 170),
+                canPayDebt, canPayDebt ? INK : Color.WHITE);
 
         drawImage(g, "Character.png", 67, 201, 267, 366);
         g.setColor(new Color(18, 34, 56, 233));
@@ -858,19 +873,8 @@ final class GamePanel extends JPanel {
     }
 
     private void drawVictory(Graphics2D g) {
-        drawImage(g, "bg_01.png", 0, 0, WIDTH, HEIGHT);
-        g.setColor(new Color(10, 21, 39, 205));
-        g.fillRect(0, 0, WIDTH, HEIGHT);
-        fillRound(g, new Color(22, 44, 68, 235), 170, 56, 940, 608, 34);
-        strokeRound(g, new Color(255, 209, 113), 170, 56, 940, 608, 34, 3f);
-        drawImage(g, "Character_LS_01.png", 513, 112, 254, 320);
-        drawText(g, "ปลดหนี้สำเร็จ!", 640, 478, 42, Font.BOLD, GOLD, false);
-        drawText(g, "คุณชนะสลากพิเศษและชำระหนี้ "
-                        + money(GameModel.STARTING_DEBT) + " บาทครบแล้ว", 640, 525,
-                21, Font.BOLD, Color.WHITE, false);
-        drawText(g, "จากการแสดง Living Statue สู่วันที่เริ่มต้นใหม่", 640, 561,
-                18, Font.PLAIN, new Color(208, 223, 237), false);
-        drawButton(g, VICTORY_RESTART, "เริ่มการเดินทางอีกครั้ง", new Color(39, 112, 79),
+        drawImage(g, "cutscene_end.png", 0, 0, WIDTH, HEIGHT);
+        drawButton(g, ENDING_DONE, "จบเกม", new Color(39, 112, 79),
                 new Color(120, 222, 160), true);
     }
 
@@ -885,12 +889,13 @@ final class GamePanel extends JPanel {
                 "2. กด SPACE หรือปุ่มค้างท่า ให้ตรงกับแถบสีทอง",
                 "3. ซื้อ Cursor ที่ร้านค้า แล้วชี้เมาส์เพื่อเปิดสลากอัตโนมัติ",
                 "4. ใช้เงินซื้อสลากระดับ 1 ถึง 5 แล้วลุ้นรางวัล",
-                "5. สลากพิเศษใช้เงินทั้งหมด โอกาสชนะสูงสุด 50%",
-                "6. ถ้าชนะสลากพิเศษ จะปลดหนี้ "
+                "5. ทำบุญที่ร้านค้าเพื่อเพิ่มความโชคดี และโอกาสได้รางวัลใหญ่",
+                "6. สลากพิเศษใช้เงินทั้งหมด โอกาสชนะสูงสุด 50%",
+                "7. ถ้าชนะสลากพิเศษ จะปลดหนี้ "
                         + money(GameModel.STARTING_DEBT) + " บาททันที"
         };
         for (int i = 0; i < lines.length; i++) {
-            drawText(g, lines[i], 370, 229 + i * 52, 18, Font.PLAIN, INK, false);
+            drawText(g, lines[i], 370, 220 + i * 42, 17, Font.PLAIN, INK, false);
         }
         drawButton(g, new Rectangle(510, 545, 260, 64), "เข้าใจแล้ว",
                 new Color(44, 102, 148), new Color(124, 183, 227), true);
@@ -914,6 +919,11 @@ final class GamePanel extends JPanel {
 
     private void drawButton(Graphics2D g, Rectangle bounds, String label,
                             Color fill, Color border, boolean enabled) {
+        drawButton(g, bounds, label, fill, border, enabled, Color.WHITE);
+    }
+
+    private void drawButton(Graphics2D g, Rectangle bounds, String label,
+                            Color fill, Color border, boolean enabled, Color textColor) {
         boolean hovered = enabled && bounds.contains(mouseCanvas);
         Color actualFill = enabled ? fill : new Color(104, 116, 128);
         Color actualBorder = enabled ? border : new Color(151, 162, 170);
@@ -926,7 +936,7 @@ final class GamePanel extends JPanel {
         strokeRound(g, actualBorder, bounds.x, bounds.y, bounds.width, bounds.height, 18,
                 hovered ? 3f : 2f);
         drawText(g, label, bounds.x + bounds.width / 2,
-                bounds.y + bounds.height / 2 + 7, 20, Font.BOLD, Color.WHITE, true);
+                bounds.y + bounds.height / 2 + 7, 20, Font.BOLD, textColor, true);
     }
 
     private void drawImage(Graphics2D g, String name, int x, int y, int width, int height) {

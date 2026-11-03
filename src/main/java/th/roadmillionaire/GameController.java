@@ -77,7 +77,18 @@ final class GameController {
     }
 
     void startNewGame() {
+        resetGameState();
+        startStory();
+    }
+
+    void finishGame() {
+        resetGameState();
+        screen = Screen.TITLE;
+    }
+
+    private void resetGameState() {
         model.reset();
+        introPage = 0;
         latestOutcome = null;
         latestRegularTier = null;
         revealedSymbols = new boolean[0];
@@ -86,7 +97,6 @@ final class GameController {
         performancePaid = false;
         storeMessageForDonation = false;
         message = "";
-        startStory();
     }
 
     void startPerformance(long nowMs) {
@@ -150,6 +160,19 @@ final class GameController {
         model.recordDonation();
         message = "ทำบุญสำเร็จ รับโชค +0.1%";
         return true;
+    }
+
+    boolean payDebt() {
+        if (model.debt() <= 0L || !model.canAfford(GameModel.STARTING_DEBT)) {
+            return false;
+        }
+        model.repayDebt(GameModel.STARTING_DEBT);
+        if (model.debt() == 0L) {
+            screen = Screen.VICTORY;
+            message = "";
+            return true;
+        }
+        return false;
     }
 
     boolean storeMessageForDonation() {
