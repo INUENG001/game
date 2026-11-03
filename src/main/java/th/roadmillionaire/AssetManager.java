@@ -4,6 +4,7 @@ import javax.imageio.ImageIO;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -49,6 +50,17 @@ final class AssetManager {
     }
 
     private BufferedImage load(String fileName) {
+        try (InputStream resource = AssetManager.class.getResourceAsStream("/image/" + fileName)) {
+            if (resource != null) {
+                BufferedImage image = ImageIO.read(resource);
+                if (image != null) {
+                    return image;
+                }
+            }
+        } catch (IOException ignored) {
+            // Fall back to the project image folders when running from source.
+        }
+
         Path[] candidates = {
                 Path.of("image", fileName),
                 Path.of("src", "main", "resources", "image", fileName)
@@ -56,9 +68,12 @@ final class AssetManager {
         for (Path path : candidates) {
             if (Files.isRegularFile(path)) {
                 try {
-                    return ImageIO.read(path.toFile());
+                    BufferedImage image = ImageIO.read(path.toFile());
+                    if (image != null) {
+                        return image;
+                    }
                 } catch (IOException ignored) {
-                    return null;
+                    // Try the next supported location.
                 }
             }
         }
