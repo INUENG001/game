@@ -9,7 +9,6 @@ record LotteryOutcome(
         List<TicketSymbol> symbols,
         long wager,
         long prize,
-        long netPrize,
         double chance
 ) {
     LotteryOutcome {

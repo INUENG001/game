@@ -43,19 +43,20 @@ final class GamePanel extends JPanel {
     private static final Rectangle TOWN_RESTART = new Rectangle(996, 596, 236, 78);
     private static final Rectangle TOWN_STORE = new Rectangle(835, 170, 330, 112);
     private static final Rectangle STORE_BACK = new Rectangle(40, 30, 174, 54);
-    private static final Rectangle STORE_BUY = new Rectangle(446, 548, 388, 66);
+    private static final Rectangle STORE_CURSOR_BUY = new Rectangle(102, 535, 460, 60);
+    private static final Rectangle STORE_DONATE = new Rectangle(718, 535, 460, 60);
     private static final Rectangle STATUE_BACK = new Rectangle(40, 635, 182, 58);
     private static final Rectangle STATUE_POSE = new Rectangle(884, 351, 330, 62);
     private static final Rectangle STATUE_REPLAY = new Rectangle(884, 324, 330, 48);
     private static final Rectangle STATUE_DONE = new Rectangle(884, 379, 330, 52);
-    private static final Rectangle LOTTERY_BACK = new Rectangle(40, 30, 174, 54);
-    private static final Rectangle LOTTERY_TIER_1 = new Rectangle(48, 487, 280, 66);
-    private static final Rectangle LOTTERY_TIER_2 = new Rectangle(354, 487, 280, 66);
-    private static final Rectangle LOTTERY_TIER_3 = new Rectangle(660, 487, 280, 66);
-    private static final Rectangle LOTTERY_TIER_4 = new Rectangle(966, 487, 272, 66);
-    private static final Rectangle LOTTERY_TIER_5 = new Rectangle(308, 487, 310, 66);
-    private static final Rectangle LOTTERY_SPECIAL = new Rectangle(662, 487, 310, 66);
-    private static final Rectangle LOTTERY_PAGE_SWITCH = new Rectangle(1044, 103, 194, 36);
+    private static final Rectangle LOTTERY_BACK = new Rectangle(40, 96, 194, 38);
+    private static final Rectangle LOTTERY_TIER_1 = new Rectangle(48, 506, 280, 66);
+    private static final Rectangle LOTTERY_TIER_2 = new Rectangle(354, 506, 280, 66);
+    private static final Rectangle LOTTERY_TIER_3 = new Rectangle(660, 506, 280, 66);
+    private static final Rectangle LOTTERY_TIER_4 = new Rectangle(966, 506, 272, 66);
+    private static final Rectangle LOTTERY_TIER_5 = new Rectangle(308, 506, 310, 66);
+    private static final Rectangle LOTTERY_SPECIAL = new Rectangle(662, 506, 310, 66);
+    private static final Rectangle LOTTERY_PAGE_SWITCH = new Rectangle(1046, 96, 194, 38);
     private static final Rectangle RESULT_LOTTERY = new Rectangle(385, 600, 240, 66);
     private static final Rectangle RESULT_TOWN = new Rectangle(655, 600, 240, 66);
     private static final int RESULT_SYMBOL_CARD_WIDTH = 120;
@@ -193,7 +194,7 @@ final class GamePanel extends JPanel {
                 if (STATUE_BACK.contains(x, y)) {
                     controller.returnToTown();
                 } else if (controller.statueSession() != null
-                        && controller.statueSession().isComplete(nowMs)) {
+                        && controller.statueSession().isComplete()) {
                     if (STATUE_REPLAY.contains(x, y)) {
                         controller.startPerformance(nowMs);
                     } else if (STATUE_DONE.contains(x, y)) {
@@ -245,8 +246,10 @@ final class GamePanel extends JPanel {
             case STORE -> {
                 if (STORE_BACK.contains(x, y)) {
                     controller.returnToTown();
-                } else if (STORE_BUY.contains(x, y)) {
+                } else if (STORE_CURSOR_BUY.contains(x, y)) {
                     controller.purchaseCursor();
+                } else if (STORE_DONATE.contains(x, y)) {
+                    controller.donate();
                 }
             }
             case VICTORY -> {
@@ -376,8 +379,6 @@ final class GamePanel extends JPanel {
         g.setColor(new Color(13, 27, 48, 222));
         g.fillRect(0, 0, WIDTH, 108);
         drawText(g, "เส้นทางเศรษฐี", 54, 62, 29, Font.BOLD, CREAM, false);
-        drawText(g, "แสดงให้ดี เก็บเงินให้พอ แล้วค่อยเสี่ยง", 56, 89,
-                15, Font.PLAIN, new Color(191, 213, 230), false);
         drawText(g, "หนี้คงเหลือ  ฿" + money(controller.model().debt()), 470, 66,
                 18, Font.BOLD, CREAM, false);
 
@@ -412,8 +413,6 @@ final class GamePanel extends JPanel {
         drawText(g, "สลากที่ซื้อ", 650, 456, 16, Font.BOLD, new Color(193, 211, 229), false);
         drawText(g, Integer.toString(controller.model().ticketsBought()), 650, 490,
                 28, Font.BOLD, GOLD, false);
-        drawText(g, "แตะปุ่มค้างท่าให้ตรงจังหวะ เพื่อรับทิปเพิ่ม", 848, 477,
-                17, Font.PLAIN, new Color(220, 231, 241), false);
 
         drawImage(g, "Character.png", 67, 201, 267, 366);
         g.setColor(new Color(18, 34, 56, 233));
@@ -432,7 +431,7 @@ final class GamePanel extends JPanel {
         drawImage(g, "bg_01.png", 0, 0, WIDTH, HEIGHT);
         LivingStatueSession session = controller.statueSession();
         if (session == null) return;
-        boolean finished = session.isComplete(System.currentTimeMillis());
+        boolean finished = session.isComplete();
         long nowMs = System.currentTimeMillis();
 
         g.setColor(new Color(17, 27, 40, 105));
@@ -453,9 +452,6 @@ final class GamePanel extends JPanel {
                 18, Font.BOLD, new Color(255, 215, 119), false);
         drawText(g, session.latestFeedback(), 54, 305,
                 15, Font.PLAIN, new Color(220, 232, 244), false);
-        drawText(g, String.format(Locale.ROOT, "ความเร็ว %.1f×", session.speedMultiplier()),
-                54, 346, 14, Font.BOLD, GOLD, false);
-        drawSpeedMeter(g, session.speedProgress(), 173, 331, 207, 14);
 
         fillRound(g, new Color(13, 29, 48, 222), 852, 150, 394, 294, 22);
         strokeRound(g, new Color(247, 197, 99, 220), 852, 150, 394, 294, 22, 2f);
@@ -470,7 +466,7 @@ final class GamePanel extends JPanel {
             drawText(g, "กดถูกแล้วแถบจะเร็วขึ้น • พลาดครั้งเดียวจบ", 1049, 433,
                     14, Font.PLAIN, new Color(216, 229, 240), true);
         } else {
-            drawText(g, "฿" + money(session.finalReward()), 1049, 278,
+            drawText(g, "฿" + money(session.reward()), 1049, 278,
                     34, Font.BOLD, new Color(255, 215, 119), true);
             drawText(g, "ค้างท่า " + session.hitCount() + " ครั้ง", 1049, 310,
                     17, Font.PLAIN, CREAM, true);
@@ -514,15 +510,6 @@ final class GamePanel extends JPanel {
         g.drawOval(markerX - 9, y - 8, 18, height + 16);
     }
 
-    private void drawSpeedMeter(Graphics2D g, double progress, int x, int y,
-                                int width, int height) {
-        fillRound(g, new Color(61, 78, 96), x, y, width, height, height / 2);
-        int fillWidth = (int) Math.round(width * Math.max(0.0, Math.min(1.0, progress)));
-        if (fillWidth > 0) {
-            fillRound(g, new Color(255, 190, 52), x, y, fillWidth, height, height / 2);
-        }
-    }
-
     private void drawLottery(Graphics2D g) {
         drawDarkBackdrop(g);
         drawButton(g, LOTTERY_BACK, "กลับเมือง", new Color(40, 71, 105),
@@ -539,26 +526,21 @@ final class GamePanel extends JPanel {
 
         if (lotteryPage == 0) {
             drawTicketCard(g, TicketTier.LEVEL_1,
-                    new Rectangle(42, 141, 286, 412), LOTTERY_TIER_1);
+                    new Rectangle(42, 160, 286, 412), LOTTERY_TIER_1);
             drawTicketCard(g, TicketTier.LEVEL_2,
-                    new Rectangle(348, 141, 286, 412), LOTTERY_TIER_2);
+                    new Rectangle(348, 160, 286, 412), LOTTERY_TIER_2);
             drawTicketCard(g, TicketTier.LEVEL_3,
-                    new Rectangle(654, 141, 286, 412), LOTTERY_TIER_3);
+                    new Rectangle(654, 160, 286, 412), LOTTERY_TIER_3);
             drawTicketCard(g, TicketTier.LEVEL_4,
-                    new Rectangle(960, 141, 278, 412), LOTTERY_TIER_4);
+                    new Rectangle(960, 160, 278, 412), LOTTERY_TIER_4);
         } else {
             drawTicketCard(g, TicketTier.LEVEL_5,
-                    new Rectangle(298, 141, 330, 412), LOTTERY_TIER_5);
-            drawSpecialCard(g, new Rectangle(652, 141, 330, 412));
+                    new Rectangle(298, 160, 330, 412), LOTTERY_TIER_5);
+            drawSpecialCard(g, new Rectangle(652, 160, 330, 412));
         }
 
-        fillRound(g, new Color(24, 42, 65), 42, 574, 1196, 89, 18);
-        drawText(g, "ตัวคูณรางวัลใหญ่ระดับ 1–5: 15× / 20× / 30× / 35× / 45× ของราคา  •  ปลอบใจ +1×  •  กะโหลก −1×",
-                640, 610, 17, Font.BOLD, new Color(224, 233, 243), true);
-        drawText(g, "สลากพิเศษใช้เงินทั้งหมดที่มี และมีโอกาสชนะสูงสุด 50% ตามเงินที่ถืออยู่",
-                640, 641, 16, Font.PLAIN, new Color(185, 203, 221), true);
         if (!controller.message().isBlank()) {
-            drawText(g, controller.message(), 640, 699, 15, Font.BOLD,
+            drawText(g, controller.message(), 640, 622, 15, Font.BOLD,
                     new Color(255, 163, 146), true);
         }
     }
@@ -788,23 +770,75 @@ final class GamePanel extends JPanel {
         drawText(g, "ร้านค้า", 640, 62, 32, Font.BOLD, CREAM, true);
         drawCashTab(g);
 
-        fillRound(g, new Color(237, 244, 249), 320, 124, 640, 528, 28);
-        strokeRound(g, new Color(243, 199, 105), 320, 124, 640, 528, 28, 3f);
-        drawImage(g, "Cursor.png", 540, 153, 200, 200);
-        drawText(g, "Cursor อัตโนมัติ", 640, 390, 28, Font.BOLD, INK, true);
-        drawText(g, "ชี้เมาส์บนช่องสัญลักษณ์เพื่อเปิดสลากอัตโนมัติ", 640, 429,
-                18, Font.PLAIN, new Color(68, 86, 105), true);
-        drawText(g, "ราคา  ฿" + money(GameController.CURSOR_PRICE), 640, 475,
-                25, Font.BOLD, new Color(153, 92, 25), true);
+        Rectangle cursorCard = new Rectangle(52, 124, 564, 532);
+        Rectangle donationCard = new Rectangle(664, 124, 564, 532);
+        fillRound(g, new Color(237, 244, 249), cursorCard.x, cursorCard.y,
+                cursorCard.width, cursorCard.height, 28);
+        strokeRound(g, new Color(243, 199, 105), cursorCard.x, cursorCard.y,
+                cursorCard.width, cursorCard.height, 28, 3f);
+        fillRound(g, new Color(237, 244, 249), donationCard.x, donationCard.y,
+                donationCard.width, donationCard.height, 28);
+        strokeRound(g, new Color(103, 184, 119), donationCard.x, donationCard.y,
+                donationCard.width, donationCard.height, 28, 3f);
 
         boolean purchased = controller.model().cursorPurchased();
-        drawButton(g, STORE_BUY, purchased ? "ซื้อแล้ว" : "ซื้อ Cursor",
+        int cursorCenter = cursorCard.x + cursorCard.width / 2;
+        drawImage(g, "Cursor.png", cursorCenter - 100, 151, 200, 200);
+        drawText(g, "Cursor อัตโนมัติ", cursorCenter, 382, 28, Font.BOLD, INK, true);
+        drawText(g, "ชี้เมาส์บนช่องสัญลักษณ์เพื่อเปิดสลากอัตโนมัติ", cursorCenter, 420,
+                17, Font.PLAIN, new Color(68, 86, 105), true);
+        drawText(g, "ราคา  ฿" + money(GameController.CURSOR_PRICE), cursorCenter, 474,
+                25, Font.BOLD, new Color(153, 92, 25), true);
+        drawButton(g, STORE_CURSOR_BUY, purchased ? "ซื้อแล้ว" : "ซื้อ Cursor",
                 purchased ? new Color(104, 116, 128) : new Color(40, 101, 152),
                 purchased ? new Color(151, 162, 170) : new Color(127, 183, 226), !purchased);
+
+        int donationCount = controller.model().donations();
+        int donationCenter = donationCard.x + donationCard.width / 2;
+        drawImage(g, "Monk.png", donationCenter - 100, 145, 200, 200);
+        drawText(g, "ทำบุญ", donationCenter, 375, 28, Font.BOLD, INK, true);
+        drawImage(g, "clover.png", donationCard.x + 38, 391, 48, 48);
+        int barX = donationCard.x + 106;
+        int barY = 405;
+        int barWidth = donationCard.width - 150;
+        int barHeight = 20;
+        g.setColor(new Color(248, 250, 252));
+        g.fillRect(barX, barY, barWidth, barHeight);
+        int luckProgress = (int) Math.round(barWidth
+                * donationCount / (double) GameModel.MAX_DONATIONS);
+        if (luckProgress > 0) {
+            g.setColor(new Color(62, 164, 84));
+            g.fillRect(barX + 2, barY + 2, Math.max(1, luckProgress - 4), barHeight - 4);
+        }
+        g.setColor(new Color(26, 48, 35));
+        g.drawRect(barX, barY, barWidth, barHeight);
+        String luckLabel = String.format(Locale.US, "โชค +%.1f%%",
+                controller.model().luckBonus() * 100.0);
+        drawText(g, luckLabel, donationCenter, 461,
+                17, Font.BOLD, GREEN, true);
+        drawText(g, "ทำบุญแล้ว " + donationCount + " / " + GameModel.MAX_DONATIONS + " ครั้ง",
+                donationCenter, 486, 14, Font.PLAIN, new Color(68, 86, 105), true);
+        String donationCostLabel = donationCount >= GameModel.MAX_DONATIONS
+                ? "ทำบุญครบ 10 ครั้งแล้ว"
+                : "ค่าใช้จ่าย  ฿" + money(controller.model().nextDonationCost());
+        drawText(g, donationCostLabel, donationCenter, 513,
+                20, Font.BOLD, new Color(153, 92, 25), true);
+        boolean donationAvailable = donationCount < GameModel.MAX_DONATIONS;
+        boolean canAffordDonation = donationAvailable
+                && controller.model().canAfford(controller.model().nextDonationCost());
+        drawButton(g, STORE_DONATE,
+                donationAvailable ? "ทำบุญ" : "ทำบุญครบแล้ว",
+                canAffordDonation ? new Color(54, 168, 78) : new Color(95, 159, 101),
+                canAffordDonation ? new Color(137, 220, 125) : new Color(144, 193, 138),
+                donationAvailable);
+
         if (!controller.message().isBlank()) {
             Color messageColor = controller.message().equals("ยอดเงินไม่เพียงพอ")
                     ? RED : GREEN;
-            drawText(g, controller.message(), 640, 625, 17, Font.BOLD, messageColor, true);
+            int messageCenter = controller.storeMessageForDonation()
+                    ? donationCenter : cursorCenter;
+            drawText(g, controller.message(), messageCenter, 630,
+                    16, Font.BOLD, messageColor, true);
         }
     }
 

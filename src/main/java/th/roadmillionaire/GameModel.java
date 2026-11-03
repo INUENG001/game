@@ -4,6 +4,11 @@ import java.util.EnumMap;
 
 final class GameModel {
     static final long STARTING_DEBT = 10_000_000L;
+    static final int MAX_DONATIONS = 10;
+    private static final long[] DONATION_COSTS = {
+            1_000L, 2_000L, 5_000L, 10_000L, 25_000L,
+            50_000L, 100_000L, 250_000L, 500_000L, 1_000_000L
+    };
 
     private final EnumMap<TicketTier, Integer> ticketPurchasesByTier =
             new EnumMap<>(TicketTier.class);
@@ -11,6 +16,7 @@ final class GameModel {
     private long debt;
     private int performances;
     private int ticketsBought;
+    private int donations;
     private boolean cursorPurchased;
 
     GameModel() {
@@ -22,6 +28,7 @@ final class GameModel {
         debt = STARTING_DEBT;
         performances = 0;
         ticketsBought = 0;
+        donations = 0;
         ticketPurchasesByTier.clear();
         cursorPurchased = false;
     }
@@ -44,6 +51,27 @@ final class GameModel {
 
     boolean cursorPurchased() {
         return cursorPurchased;
+    }
+
+    int donations() {
+        return donations;
+    }
+
+    long nextDonationCost() {
+        return donations >= MAX_DONATIONS ? DONATION_COSTS[DONATION_COSTS.length - 1]
+                : DONATION_COSTS[donations];
+    }
+
+    double luckBonus() {
+        return Math.min(0.01, donations * 0.001);
+    }
+
+    boolean recordDonation() {
+        if (donations >= MAX_DONATIONS) {
+            return false;
+        }
+        donations++;
+        return true;
     }
 
     void unlockCursor() {

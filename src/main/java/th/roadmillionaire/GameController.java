@@ -18,6 +18,7 @@ final class GameController {
     private boolean[] revealedSymbols = new boolean[0];
     private boolean regularPayoutApplied;
     private boolean performancePaid;
+    private boolean storeMessageForDonation;
     private String message = "";
 
     GameModel model() {
@@ -45,11 +46,17 @@ final class GameController {
     }
 
     double specialChance() {
-        return lotterySystem.specialChance(model.cash());
+        return lotterySystem.specialChance(model.cash(), model.luckBonus());
     }
 
     TicketOdds ticketOdds(TicketTier tier) {
-        return tier.oddsAfterPurchases(model.ticketPurchases(tier));
+        TicketOdds odds = tier.oddsAfterPurchases(model.ticketPurchases(tier));
+        double luck = model.luckBonus();
+        return new TicketOdds(
+                odds.majorChance() + luck,
+                odds.consolationChance(),
+                Math.max(0.0, odds.skullChance() - luck),
+                odds.emptyChance());
     }
 
     int ticketPurchases(TicketTier tier) {
@@ -77,6 +84,7 @@ final class GameController {
         regularPayoutApplied = false;
         statueSession = null;
         performancePaid = false;
+        storeMessageForDonation = false;
         message = "";
         startStory();
     }
@@ -88,7 +96,7 @@ final class GameController {
     }
 
     void poseNow(long nowMs) {
-        if (screen == Screen.STATUE && statueSession != null && !statueSession.isComplete(nowMs)) {
+        if (screen == Screen.STATUE && statueSession != null && !statueSession.isComplete()) {
             statueSession.pressPose(nowMs);
         }
     }
@@ -96,8 +104,8 @@ final class GameController {
     void tick(long nowMs) {
         if (screen == Screen.STATUE && statueSession != null) {
             statueSession.advanceTimedOutRounds(nowMs);
-            if (statueSession.isComplete(nowMs) && !performancePaid) {
-                model.recordPerformance(statueSession.finalReward());
+            if (statueSession.isComplete() && !performancePaid) {
+                model.recordPerformance(statueSession.reward());
                 performancePaid = true;
             }
         }
@@ -109,10 +117,12 @@ final class GameController {
 
     void openStore() {
         message = "";
+        storeMessageForDonation = false;
         screen = Screen.STORE;
     }
 
     boolean purchaseCursor() {
+        storeMessageForDonation = false;
         if (model.cursorPurchased()) {
             message = "ซื้อ Cursor ไปแล้ว";
             return false;
@@ -124,6 +134,26 @@ final class GameController {
         model.unlockCursor();
         message = "ซื้อ Cursor สำเร็จ";
         return true;
+    }
+
+    boolean donate() {
+        storeMessageForDonation = true;
+        if (model.donations() >= GameModel.MAX_DONATIONS) {
+            message = "ทำบุญครบ 10 ครั้งแล้ว";
+            return false;
+        }
+        long cost = model.nextDonationCost();
+        if (!model.spend(cost)) {
+            message = "ยอดเงินไม่เพียงพอ";
+            return false;
+        }
+        model.recordDonation();
+        message = "ทำบุญสำเร็จ รับโชค +0.1%";
+        return true;
+    }
+
+    boolean storeMessageForDonation() {
+        return storeMessageForDonation;
     }
 
     boolean buyTicket(TicketTier tier) {
@@ -151,7 +181,7 @@ final class GameController {
         message = "";
         model.spend(wager);
         model.recordTicketPurchase();
-        latestOutcome = lotterySystem.drawSpecial(wager);
+        latestOutcome = lotterySystem.drawSpecial(wager, model.luckBonus());
         revealedSymbols = new boolean[0];
         regularPayoutApplied = false;
         if (latestOutcome.won()) {
@@ -213,7 +243,4 @@ final class GameController {
         screen = Screen.LOTTERY;
     }
 
-    void resetToTitle() {
-        screen = Screen.TITLE;
-    }
 }

@@ -40,20 +40,21 @@ final class LotterySystem {
                 + (long) consolationCount * tier.price()
                 - (long) skullCount * tier.price();
         long prize = Math.max(0L, rawPrize);
-        return new LotteryOutcome(false, prize > 0L, tier, symbols, tier.price(), prize, prize, 0.0);
+        return new LotteryOutcome(false, prize > 0L, tier, symbols, tier.price(), prize, 0.0);
     }
 
-    double specialChance(long currentCash) {
+    double specialChance(long currentCash, double luckBonus) {
         if (currentCash <= 0L) {
             return 0.0;
         }
-        return Math.min(0.50, currentCash / (double) SPECIAL_PRIZE / 2.0);
+        double baseChance = currentCash / (double) SPECIAL_PRIZE / 2.0;
+        return Math.min(0.50, baseChance + luckBonus);
     }
 
-    LotteryOutcome drawSpecial(long currentCash) {
-        double chance = specialChance(currentCash);
+    LotteryOutcome drawSpecial(long currentCash, double luckBonus) {
+        double chance = specialChance(currentCash, luckBonus);
         boolean won = currentCash > 0L && random.nextDouble() < chance;
         long prize = won ? SPECIAL_PRIZE : 0L;
-        return new LotteryOutcome(true, won, null, List.of(), currentCash, prize, prize, chance);
+        return new LotteryOutcome(true, won, null, List.of(), currentCash, prize, chance);
     }
 }

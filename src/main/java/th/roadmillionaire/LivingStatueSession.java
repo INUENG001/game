@@ -28,7 +28,7 @@ final class LivingStatueSession {
         return hitCount + 1;
     }
 
-    boolean isComplete(long nowMs) {
+    boolean isComplete() {
         return complete;
     }
 
@@ -55,15 +55,6 @@ final class LivingStatueSession {
     double marker(long nowMs) {
         long inRound = Math.max(0L, nowMs - roundStartedAtMs);
         return Math.min(1.0, inRound / (double) sweepLengthMs());
-    }
-
-    double speedProgress() {
-        return (STARTING_SWEEP_LENGTH_MS - sweepLengthMs())
-                / (double) (STARTING_SWEEP_LENGTH_MS - MIN_SWEEP_LENGTH_MS);
-    }
-
-    double speedMultiplier() {
-        return STARTING_SWEEP_LENGTH_MS / (double) sweepLengthMs();
     }
 
     void pressPose(long nowMs) {
@@ -93,10 +84,6 @@ final class LivingStatueSession {
             complete = true;
             latestFeedback = "จบการแสดง";
         }
-    }
-
-    int finalReward() {
-        return reward;
     }
 
     private long sweepLengthMs() {
